@@ -6,9 +6,10 @@ public class InputManager : MonoBehaviour
     private Controls controls;
     
     private Camera mainCam;
-    private float zPos = 5;
     private bool isDragging = false;
     private GameObject knife;
+    
+    [SerializeField] private float zPos = 1; //카메라에서부터 떨어진 거리
 
     private void Awake()
     {
@@ -35,29 +36,24 @@ public class InputManager : MonoBehaviour
     
     private void TryGrabKnife(InputAction.CallbackContext context)
     {
-        Debug.Log("grab > "+controls.Interaction.Position.ReadValue<Vector2>());
         if(!isDragging)
             GrabKnife(controls.Interaction.Position.ReadValue<Vector2>());
     }
     
     private void EndTouch(InputAction.CallbackContext context)
     {
-        Debug.Log("cancel > "+controls.Interaction.Position.ReadValue<Vector2>());
         if (isDragging)
             ReleaseKnife();
     }
 
     void Update()
     {
-        Debug.Log("isDragging? "+isDragging);
         if (isDragging)
         {
-            Debug.Log("drag > " + controls.Interaction.Position.ReadValue<Vector2>());
             MoveKnife(controls.Interaction.Position.ReadValue<Vector2>());
         }
     }
     
-
     void GrabKnife(Vector3 screenPos)
     {
         Ray ray = mainCam.ScreenPointToRay(screenPos);
@@ -67,8 +63,7 @@ public class InputManager : MonoBehaviour
         {
             if (hit.collider.CompareTag("Knife"))
             {
-                zPos = hit.collider.gameObject.transform.position.z-hit.point.z;
-                knife = hit.collider.gameObject; //<-나중에 삭제 (시작 시 칼 선택하고 선택한 칼로 미리 knife초기화하기)
+                knife = hit.collider.transform.parent.gameObject; //<-나중에 삭제 (시작 시 칼 선택하고 선택한 칼로 미리 knife초기화하기)
                 isDragging = true;
             }
         }
@@ -76,9 +71,9 @@ public class InputManager : MonoBehaviour
     
     void MoveKnife(Vector3 screenPos)
     {
-        //Vector3 handlePos = knife.transform.GetChild(0).position;
-        //Vector3 offset = knife.transform.position-handlePos;
-        knife.transform.position = ScreenToWorld(screenPos); //+offset
+        Vector3 handlePos = knife.transform.GetChild(0).position;
+        Vector3 offset = knife.transform.position-handlePos;
+        knife.transform.position = ScreenToWorld(screenPos) + offset;   //칼손잡이 위치만큼 위치 보정
     }
     Vector3 ScreenToWorld(Vector3 screenPos)
     {
