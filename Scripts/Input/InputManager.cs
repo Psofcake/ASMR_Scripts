@@ -1,59 +1,64 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class InputManager : MonoBehaviour
 {
+    private Controls controls;
+    
     private Camera mainCam;
     private float zPos = 5;
     private bool isDragging = false;
     private GameObject knife;
-    
+
+    private void Awake()
+    {
+        controls = new Controls();
+    }
+
+    private void OnEnable()
+    {
+        controls.Enable();
+    }
+
+    private void OnDisable()
+    {
+        controls.Disable();
+    }
+
     void Start()
     {
         mainCam = Camera.main;
+        //controls.Touch.TouchPress.started += ctx => StartTouch(ctx); (아래와 동일)
+        controls.Interaction.Grab.performed += TryGrabKnife;
+        controls.Interaction.Press.canceled += EndTouch;
+    }
+    
+    private void TryGrabKnife(InputAction.CallbackContext context)
+    {
+        Debug.Log("grab > "+controls.Interaction.Position.ReadValue<Vector2>());
+        if(!isDragging)
+            GrabKnife(controls.Interaction.Position.ReadValue<Vector2>());
+    }
+    
+    private void EndTouch(InputAction.CallbackContext context)
+    {
+        Debug.Log("cancel > "+controls.Interaction.Position.ReadValue<Vector2>());
+        if (isDragging)
+            ReleaseKnife();
     }
 
     void Update()
     {
-        HandleInput();
+        Debug.Log("isDragging? "+isDragging);
+        if (isDragging)
+        {
+            Debug.Log("drag > " + controls.Interaction.Position.ReadValue<Vector2>());
+            MoveKnife(controls.Interaction.Position.ReadValue<Vector2>());
+        }
     }
     
-    void HandleInput()
-    {
-//#if UNITY_EDITOR || UNITY_STANDALONE
-        if (Input.GetMouseButtonDown(0))
-        {
-            TryGrabKnife(Input.mousePosition);
-        }
-        else if (Input.GetMouseButton(0))
-        {
-            MoveKnife(Input.mousePosition);
-        }
-        else if (Input.GetMouseButtonUp(0))
-        {
-            ReleaseKnife();
-        }
-//#else
-        if (Input.touchCount == 0) return;
-        Touch touch = Input.GetTouch(0);
 
-        if (touch.phase == TouchPhase.Began) // 터치 시작
-        {
-            TryGrabKnife(touch.position);
-        }
-        else if (touch.phase == TouchPhase.Moved && isDragging) // 드래그
-        {
-            MoveKnife(touch.position);
-        }
-        else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled) // 터치 종료
-        {
-            ReleaseKnife();
-            
-        }
-        
-//#endif
-    }
-
-    void TryGrabKnife(Vector3 screenPos)
+    void GrabKnife(Vector3 screenPos)
     {
         Ray ray = mainCam.ScreenPointToRay(screenPos);
         RaycastHit hit;
